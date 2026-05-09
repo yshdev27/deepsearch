@@ -9,10 +9,12 @@ import { SignInModal } from "~/components/sign-in-modal";
 
 interface ChatProps {
   userName: string;
+  isAuthenticated: boolean;
 }
 
-export const ChatPage = ({ userName }: ChatProps) => {
+export const ChatPage = ({ userName, isAuthenticated }: ChatProps) => {
   const [input, setInput] = useState("");
+  const [isSignInOpen, setIsSignInOpen] = useState(false);
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
@@ -23,6 +25,10 @@ export const ChatPage = ({ userName }: ChatProps) => {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!isAuthenticated) {
+      setIsSignInOpen(true);
+      return;
+    }
     if (input.trim() && !isLoading) {
       sendMessage({
         role: "user",
@@ -54,7 +60,10 @@ export const ChatPage = ({ userName }: ChatProps) => {
         </div>
 
         <div className="border-t border-gray-700">
-          <form onSubmit={handleSubmit} className="mx-auto max-w-[65ch] p-4">
+          <form
+            onSubmit={handleSubmit}
+            className="relative mx-auto max-w-[65ch] p-4"
+          >
             <div className="flex gap-2">
               <input
                 value={input}
@@ -62,7 +71,7 @@ export const ChatPage = ({ userName }: ChatProps) => {
                 placeholder="Say something..."
                 aria-label="Chat input"
                 className="flex-1 rounded border border-gray-700 bg-gray-800 p-2 text-gray-200 placeholder-gray-400 focus:border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50"
-                disabled={isLoading}
+                disabled={isLoading || !isAuthenticated}
               />
               <button
                 type="submit"
@@ -76,11 +85,23 @@ export const ChatPage = ({ userName }: ChatProps) => {
                 )}
               </button>
             </div>
+            {!isAuthenticated && (
+              <button
+                type="button"
+                onClick={() => setIsSignInOpen(true)}
+                className="absolute inset-4 flex items-center justify-center rounded border border-dashed border-gray-600 bg-gray-900/80 text-sm text-gray-300 backdrop-blur focus:outline-none focus:ring-2 focus:ring-blue-400"
+              >
+                Sign in to start chatting
+              </button>
+            )}
           </form>
         </div>
       </div>
 
-      <SignInModal isOpen={false} onClose={() => {}} />
+      <SignInModal
+        isOpen={isSignInOpen}
+        onClose={() => setIsSignInOpen(false)}
+      />
     </>
   );
 };

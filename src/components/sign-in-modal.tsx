@@ -1,3 +1,5 @@
+"use client";
+
 import { signIn } from "next-auth/react";
 import { siDiscord } from "simple-icons/icons";
 
