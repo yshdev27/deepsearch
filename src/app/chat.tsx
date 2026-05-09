@@ -5,6 +5,7 @@ import { DefaultChatTransport } from "ai";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { ChatMessage } from "~/components/chat-message";
+import { ErrorMessage } from "~/components/error-message";
 import { SignInModal } from "~/components/sign-in-modal";
 
 interface ChatProps {
@@ -15,13 +16,18 @@ interface ChatProps {
 export const ChatPage = ({ userName, isAuthenticated }: ChatProps) => {
   const [input, setInput] = useState("");
   const [isSignInOpen, setIsSignInOpen] = useState(false);
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, error } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
     }),
   });
 
   const isLoading = status === "streaming" || status === "submitted";
+  const errorMessage = error
+    ? error instanceof Error
+      ? error.message
+      : String(error)
+    : null;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -50,6 +56,11 @@ export const ChatPage = ({ userName, isAuthenticated }: ChatProps) => {
           role="log"
           aria-label="Chat messages"
         >
+          {errorMessage && (
+            <div className="mb-4">
+              <ErrorMessage message={errorMessage} />
+            </div>
+          )}
           {messages.map((message) => (
             <ChatMessage
               key={message.id}

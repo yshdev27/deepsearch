@@ -8,18 +8,30 @@ const CACHE_KEY_SEPARATOR = ":";
 
 export const cacheWithRedis = <TFunc extends (...args: any[]) => Promise<any>>(
   keyPrefix: string,
-  fn: TFunc
+  fn: TFunc,
 ): TFunc => {
   return (async (...args: Parameters<TFunc>) => {
+    if (redis.status !== "ready") {
+      return fn(...args);
+    }
+
     const key = `${keyPrefix}${CACHE_KEY_SEPARATOR}${JSON.stringify(args)}`;
-    const cachedResult = await redis.get(key);
-    if (cachedResult) {
-      console.log(`Cache hit for ${key}`);
-      return JSON.parse(cachedResult);
+    try {
+      const cachedResult = await redis.get(key);
+      if (cachedResult) {
+        console.log(`Cache hit for ${key}`);
+        return JSON.parse(cachedResult);
+      }
+    } catch (error) {
+      console.warn("Redis cache read failed", error);
     }
 
     const result = await fn(...args);
-    await redis.set(key, JSON.stringify(result), "EX", CACHE_EXPIRY_SECONDS);
+    try {
+      await redis.set(key, JSON.stringify(result), "EX", CACHE_EXPIRY_SECONDS);
+    } catch (error) {
+      console.warn("Redis cache write failed", error);
+    }
     return result;
   }) as TFunc;
 };
