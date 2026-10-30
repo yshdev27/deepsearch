@@ -77,8 +77,10 @@ const extractWebSearch = (
   const errors: string[] = [];
 
   for (const part of parts) {
-    if (part.type !== "tool-result") continue;
-    if (part.toolName !== "web_search") continue;
+    if (!part.type.startsWith("tool-")) continue;
+
+    const toolName = part.type.replace(/^tool-/, "");
+    if (toolName !== "web_search") continue;
 
     const payload = (part as { result?: unknown }).result as
       | WebSearchPayload

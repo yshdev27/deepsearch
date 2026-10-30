@@ -19,7 +19,7 @@
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
-    "ignoreDeprecations": "6.0",
+    "ignoreDeprecations": "5.0",
     "jsx": "preserve",
     "plugins": [
       {

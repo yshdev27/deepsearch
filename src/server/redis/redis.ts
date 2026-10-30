@@ -1,7 +1,10 @@
-import Redis from "ioredis";
+import { Redis } from "@upstash/redis";
 import { env } from "~/env";
 
-export const redis = new Redis(env.REDIS_URL);
+export const redis = new Redis({
+  url: env.UPSTASH_REDIS_REST_URL,
+  token: env.UPSTASH_REDIS_REST_TOKEN,
+});
 
 const CACHE_EXPIRY_SECONDS = 60 * 60 * 6; // 6 hours
 const CACHE_KEY_SEPARATOR = ":";
@@ -11,27 +14,26 @@ export const cacheWithRedis = <TFunc extends (...args: any[]) => Promise<any>>(
   fn: TFunc,
 ): TFunc => {
   return (async (...args: Parameters<TFunc>) => {
-    if (redis.status !== "ready") {
-      return fn(...args);
-    }
-
     const key = `${keyPrefix}${CACHE_KEY_SEPARATOR}${JSON.stringify(args)}`;
+
     try {
       const cachedResult = await redis.get(key);
-      if (cachedResult) {
+      if (cachedResult !== null && cachedResult !== undefined) {
         console.log(`Cache hit for ${key}`);
-        return JSON.parse(cachedResult);
+        return cachedResult;
       }
     } catch (error) {
       console.warn("Redis cache read failed", error);
     }
 
     const result = await fn(...args);
+
     try {
-      await redis.set(key, JSON.stringify(result), "EX", CACHE_EXPIRY_SECONDS);
+      await redis.set(key, result, { ex: CACHE_EXPIRY_SECONDS });
     } catch (error) {
       console.warn("Redis cache write failed", error);
     }
+
     return result;
   }) as TFunc;
 };

@@ -37,6 +37,7 @@ const shouldUseWebSearch = (query: string, force: boolean) => {
 const extractLatestUserText = (messages: UIMessage[]): string => {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
+    if (!message) continue;
     if (message.role !== "user") continue;
     const text = message.parts
       .map((part) => (part.type === "text" ? part.text : ""))
