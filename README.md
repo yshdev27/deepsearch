@@ -2,7 +2,7 @@
 
 > A focused deep-search experience for asking questions, finding current information, and receiving readable answers with sources.
 
-DeepSearch is a full-stack Next.js implementation of the research-oriented conversational interfaces popularized by products such as **Perplexity**, **Gemini**, and **ChatGPT**. It combines a large language model with live web retrieval, cached search results, streaming responses, and authenticated user access in a compact, extensible codebase.
+DeepSearch is a full-stack Next.js implementation of the research-oriented conversational interfaces popularized by products such as **Perplexity**, **Gemini**, and **ChatGPT**. It combines a large language model with live web retrieval, cached search results, streaming responses, and optional user authentication in a compact, extensible codebase.
 
 The project is designed as both a usable AI search application and a foundation for building a more advanced deep-research agent.
 
@@ -10,7 +10,7 @@ The project is designed as both a usable AI search application and a foundation 
 
 DeepSearch turns a natural-language question into a conversational answer:
 
-1. A signed-in user submits a prompt.
+1. A user submits a prompt. Discord sign-in remains available but is not currently required.
 2. The server extracts the latest user message.
 3. Search intent is detected automatically, or explicitly with `/web`, `web:`, or `search:`.
 4. Current search results are retrieved from Serper when appropriate.
@@ -40,8 +40,7 @@ The interface supports normal knowledge questions as well as questions that bene
 
 ```mermaid
 flowchart LR
-    Browser["Next.js chat UI"] -->|Authenticated request| API["POST /api/chat"]
-    API --> Auth["Auth.js session"]
+    Browser["Next.js chat UI"] -->|Chat request| API["POST /api/chat"]
     API --> Router["Search intent router"]
     Router -->|Fresh information needed| Cache["Upstash Redis"]
     Cache -->|Cache miss| Serper["Serper web search"]
@@ -50,7 +49,7 @@ flowchart LR
     Context --> Gemini["Google Gemini 2.5 Flash"]
     API -->|UI message stream| Browser
 
-    Auth --> Postgres["Supabase Postgres"]
+    Auth["Optional Auth.js session"] --> Postgres["Supabase Postgres"]
     Postgres --> Drizzle["Drizzle ORM"]
 ```
 
@@ -58,13 +57,12 @@ flowchart LR
 
 The main request path lives in [`src/app/api/chat/route.ts`](./src/app/api/chat/route.ts):
 
-1. **Authentication** — unauthenticated requests receive `401 Unauthorized`.
-2. **Message extraction** — the latest non-empty user text is selected from the UI message history.
-3. **Directive parsing** — search prefixes are removed and treated as an explicit search request.
-4. **Intent detection** — time-sensitive terms or a longer research-style query trigger web search.
-5. **Retrieval** — up to five organic Serper results are fetched and formatted as model context.
-6. **Generation** — the conversation and optional web context are passed to Gemini.
-7. **Streaming** — the AI SDK returns a UI message stream to the client.
+1. **Message extraction** — the latest non-empty user text is selected from the UI message history.
+2. **Directive parsing** — search prefixes are removed and treated as an explicit search request.
+3. **Intent detection** — time-sensitive terms or a longer research-style query trigger web search.
+4. **Retrieval** — up to five organic Serper results are fetched and formatted as model context.
+5. **Generation** — the conversation and optional web context are passed to Gemini.
+6. **Streaming** — the AI SDK returns a UI message stream to the client.
 
 Search requests are wrapped by [`src/server/redis/redis.ts`](./src/server/redis/redis.ts). Cache reads and writes are best-effort: a Redis failure does not prevent a live Serper request, while successful results are cached for six hours.
 
@@ -94,7 +92,7 @@ Search requests are wrapped by [`src/server/redis/redis.ts`](./src/server/redis/
 ├── public/                   # Static assets
 ├── src/
 │   ├── app/
-│   │   ├── api/chat/         # Authenticated streaming chat endpoint
+│   │   ├── api/chat/         # Anonymous streaming chat endpoint
 │   │   ├── chat.tsx          # Client chat experience
 │   │   ├── layout.tsx        # Root layout and metadata
 │   │   └── page.tsx          # Application shell and sidebar
@@ -214,7 +212,7 @@ Search results are not treated as unquestionable truth. They are context supplie
 
 ## Security and reliability
 
-- Authentication is enforced at the server route, not only in the UI.
+- Chat is currently available without authentication; Discord authentication remains available for later use.
 - API credentials remain server-side and are validated before use.
 - External links rendered in messages open with `noopener noreferrer`.
 - Search requests honor the incoming request abort signal.
@@ -227,7 +225,7 @@ Search results are not treated as unquestionable truth. They are context supplie
 DeepSearch is an intentionally small but complete foundation. It currently provides:
 
 - One active conversational workspace
-- Authenticated Discord sign-in
+- Optional Discord sign-in
 - Streaming Gemini responses
 - Automatic or forced web retrieval
 - Search-result source links
